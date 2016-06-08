@@ -2,12 +2,12 @@ clear all
 
 %%
 tic;
-friction = [0 0.05 0.1 0.2 0.5];
-runs = simulateMany('time',1,'friction',friction);    
+friction = [0 0.01 0.2 0.4 0.6 0.8];
+runs = simulateMany('time',2,'friction',friction);    
 toc;
 %%
 close all
-plotMany(runs,cellstr(num2str(friction', '\\mu = %.1f')));
+plotMany(runs,cellstr(num2str(friction', '\\mu = %.3f')));
 %%
 [~,~] = mkdir('output');
 save('output/Friction.mat','runs');

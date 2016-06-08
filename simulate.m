@@ -16,6 +16,7 @@ function [data,params] = simulate(varargin)
 % SIMULATE('params',params)
 % 
 % SIMULATE('name',value,...) optional parameters:
+%   'method': either 'newton' or 'poisson', default 'poisson'
 %   'diameter': diameter (width) of the cylinder [m], default 600e-6
 %   'height': height of the cylinder [m], default 300e-6
 %   'wavelength': distance from first node to third node [m], default 6e-3
@@ -41,6 +42,8 @@ function [data,params] = simulate(varargin)
 % slightly different results can be obtained.
 
 p = inputParser;
+defaultMethod = 'poisson';
+expectedMethods = {'newton','poisson'};
 defaultDiameter = 600e-6; % Particle diameter [m]
 defaultHeight = 300e-6; % Particle height [m]
 defaultWavelength = 6e-3; % Distance between two nodes with one node in between [m]
@@ -61,23 +64,24 @@ defaultDt = 1/(64*defaultFrequency); % Time step of the simulation
 defaultFriction = 0.5; % Friction coefficient [unitless]
 defaultRestitution = 0.5; % Restitution coefficient [unitless]
 
-addOptional(p,'diameter',defaultDiameter,@isnumeric);
-addOptional(p,'height',defaultHeight,@isnumeric);
-addOptional(p,'wavelength',defaultWavelength,@isnumeric);
-addOptional(p,'position',defaultPosition,@isnumeric);
-addOptional(p,'velocity',defaultVelocity,@isnumeric);
-addOptional(p,'acceleration',defaultAcceleration,@isnumeric);
-addOptional(p,'theta',defaultTheta,@isnumeric);
-addOptional(p,'omega',defaultOmega,@isnumeric);
-addOptional(p,'alpha',defaultAlpha,@isnumeric);
-addOptional(p,'mass',defaultMass,@isnumeric);
-addOptional(p,'frequency',defaultFrequency,@isnumeric);
-addOptional(p,'amplitude',defaultAmplitude,@isnumeric);
-addOptional(p,'time',defaultTime,@isnumeric);
-addOptional(p,'dt',defaultDt,@isnumeric);
-addOptional(p,'friction',defaultFriction,@isnumeric);
-addOptional(p,'restitution',defaultRestitution,@isnumeric);
-addOptional(p,'params',[]);
+addParameter(p,'method',defaultMethod,@(x) any(validatestring(x,expectedMethods)));
+addParameter(p,'diameter',defaultDiameter,@isnumeric);
+addParameter(p,'height',defaultHeight,@isnumeric);
+addParameter(p,'wavelength',defaultWavelength,@isnumeric);
+addParameter(p,'position',defaultPosition,@isnumeric);
+addParameter(p,'velocity',defaultVelocity,@isnumeric);
+addParameter(p,'acceleration',defaultAcceleration,@isnumeric);
+addParameter(p,'theta',defaultTheta,@isnumeric);
+addParameter(p,'omega',defaultOmega,@isnumeric);
+addParameter(p,'alpha',defaultAlpha,@isnumeric);
+addParameter(p,'mass',defaultMass,@isnumeric);
+addParameter(p,'frequency',defaultFrequency,@isnumeric);
+addParameter(p,'amplitude',defaultAmplitude,@isnumeric);
+addParameter(p,'time',defaultTime,@isnumeric);
+addParameter(p,'dt',defaultDt,@isnumeric);
+addParameter(p,'friction',defaultFriction,@isnumeric);
+addParameter(p,'restitution',defaultRestitution,@isnumeric);
+addParameter(p,'params',[]);
 
 parse(p,varargin{:});
 
@@ -86,6 +90,8 @@ params = p.Results;
 if (~isempty(params.params))
     params = params.params;
 end
+
+usePoisson = strcmp(params.method,'poisson');
 
 inertia = params.mass/12 * (3/4*params.diameter^2 + params.height^2); % Moment of inertia
 poly = rectanglePoly(params.diameter,params.height);
@@ -126,48 +132,103 @@ for i = 1:n
     
     % The collision point is average of all collision vertices. I.e. if 
     % two vertices collide, the center point is the collision point
-    cp = mean(polyWorld(:,ind),2);
-    rp = cp - curPos;
-    
-    % Calculate the relative velocity of the collision point relative to
-    % the surface
-    surface_velocity = [0;dh_dt(cp(1),curTime)];
-    vp = curVel + [-curOmega * rp(2);curOmega * rp(1)] - surface_velocity;
+    cp = mean(polyWorld(:,ind),2); % Contact point, in world coordinates
+    rp = curPos - cp; % Relative contact point, in world frame
     
     % Compute tangent and normal of the surface
     tangent = [1;dh_dx(cp(1),curTime)];
     tangent = tangent / norm(tangent,2);
     normal = [-tangent(2);tangent(1)];           
+    
+    % Project contact point to local coordinates, normal pointing to
+    % positive y direction (up) and tangent pointing to positive x (right)
+    x = rp' * tangent;
+    y = rp' * normal;
+             
+    % Calculate the relative velocity of the collision point relative to
+    % the surface
+    surface_velocity = [0;dh_dt(cp(1),curTime)];
+    vp = curVel + [curOmega * rp(2);-curOmega * rp(1)] - surface_velocity;
+    
+    % Initial sliding and compression velocities, Wang-Mason eq. 22-23
+    S0 = vp' * tangent;
+    C0 = vp' * normal;
+    
+    if (C0 > 0)
+        continue;
+    end
+    
+    % Wang-Mason eq. 19 - 21, assuming m2 infinite
+    B1 = 1/params.mass + y^2/inertia;
+    B2 = 1/params.mass + x^2/inertia;
+    B3 = x*y/inertia;
 
+    s = 1 - 2*(S0 < 0);        
+        
+    mu_s = -B3 / B1;
+    P_d = (B2 + s*params.friction*B3)*s*S0;
+    P_q = -(params.friction*B1+s*B3)*C0;        
+    
+    if usePoisson
+        % Poisson restitution
+        if P_d > (1+params.restitution)*P_q
+            % Sliding
+            Py = -(1+params.restitution)*C0/(B2+s*params.friction*B3);
+            Px = -s*params.friction * Py;
+        elseif params.friction > abs(mu_s)
+            % Sticking (C-Sticking & R-Sticking)
+            if P_d < P_q 
+                % C-Sticking
+                Py = -(1+params.restitution)*(B1*C0+B3*S0)/(B1*B2-B3^2);
+                Px = (B3*Py-S0)/B1;
+            else
+                % R-Sticking
+                Py = -(1+params.restitution)*C0/(B2+s*params.friction*B3);
+                Px = (B3*Py-S0)/B1;
+            end
+        else
+            % Reverse sliding (C-Sliding & R-Sliding)           
+            if P_d < P_q 
+                % C-Reversed Sliding
+                Py = -(1+params.restitution)/(B2-s*params.friction*B3)*(C0+(2*s*params.friction*B3*S0)/(B3+s*params.friction*B1));
+                Px = s*params.friction*(Py-2*S0/(B3+s*params.friction*B1));                
+            else
+                % R-Reversed Sliding
+                Py = -(1+params.restitution)*C0/(B2+s*params.friction*B3);
+                Px = s*params.friction*(Py - 2*S0/(B3+s*params.friction*B1));
+            end
+        end     
+    else
+        % Newton restitution
+        % ------------------
+        if P_d > (1+params.restitution)*P_q
+            % Sliding
+            Py = -(1+e)*C0/(B2+s*params.friction*B3);
+            Px = -s*params.friction * Py;
+        elseif params.friction > abs(mu_s)
+            % Sticking (C-Sticking & R-Sticking)
+            Px = - (B2*S0 + (1+params.restitution)*C0*B3)/(B1*B2-B3^2);
+            Py = - (B3*S0 + (1+params.restitution)*C0*B1)/(B1*B2-B3^2);
+        else
+            % Reverse sliding (C-Sliding & R-Sliding)           
+            Py = - 1/(B2-s*params.friction*B3)*((1+params.restitution)*C0+2*s*params.friction*B3*S0/(B3*s*params.friction*B1));
+            Px = s*params.friction*(P3 - 2*S0/(B3 + s*params.friction*B1));            
+        end        
+    end
+            
     Kbefore = 0.5 * params.mass * norm(curVel-surface_velocity,2)^2 + 0.5 * inertia * curOmega^2;
     
-    % Elastic response
-    % Apply impulse at the collision point
-    cx = rp(1) * normal(2) - rp(2) * normal(1);
-    j = -(1 + params.restitution)*vp'*normal / (1/params.mass + cx^2 / inertia);
-    j = max(j,0);
-    jn = j * normal;  
-    % Update velocity and angular velocity with the normal impulse
-    curVel = curVel + jn / params.mass;
-    curOmega = curOmega + (rp(1) * jn(2) - rp(2) * jn(1)) / inertia;
+    impulse = Px * tangent + Py * normal;
 
-    % Friction response
-    % http://gafferongames.com/virtual-go/collision-response-and-coulomb-friction/
-    ct = rp(1) * tangent(2) - rp(2) * tangent(1);
-    j2 = -vp'*tangent / (1/params.mass + ct^2 / inertia);
-    maxj2 = j*params.friction;
-    minj2 = -j*params.friction;            
-    j2 = min(maxj2,max(minj2,j2));
-    jt = j2 * tangent;  
-    % Update velocity and angular velocity with the tangent impulse    
-    curVel = curVel + jt / params.mass;
-    curOmega = curOmega + (rp(1) * jt(2) - rp(2) * jt(1)) / inertia;       
+    % Update velocity and angular velocity with the normal impulse
+    curVel = curVel + impulse / params.mass;
+    curOmega = curOmega + (Px * y - Py * x) / inertia;  
     
     Kafter = 0.5 * params.mass * norm(curVel-surface_velocity,2)^2 + 0.5 * inertia * curOmega^2;
     
     Kdelta = Kafter - Kbefore;
     
-    if (Kdelta > 0)
+    if (Kdelta > 1e-10)
         disp('The kinetic energy just increased in a bounce!!!');
     end
 end

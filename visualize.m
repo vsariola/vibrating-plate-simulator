@@ -11,8 +11,8 @@ function visualize(data,params,skip)
         p = rototranslate(poly,position,theta);
         fill(p(1,:),p(2,:),'r');
         hold on;
-        bl = [position(1);0] - [params.diameter;params.diameter] ;
-        tr = [position(1);0] + [params.diameter;params.diameter] ;   
+        bl = [position(1);0] - 0.55 * [params.diameter;params.diameter] ;
+        tr = [position(1);0] + 0.55 * [params.diameter;params.diameter] ;   
         xx = linspace(bl(1),tr(1));
         plot(xx,h(xx,time));
         s = max(i-skip*100,1);

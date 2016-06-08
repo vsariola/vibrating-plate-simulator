@@ -4,7 +4,7 @@ combs = allcomb(varargin{2:2:end});
 
 ret = struct();
 
-for i = 1:size(combs,1)
+parfor i = 1:size(combs,1)
     sp = varargin;
     for j = 2:2:length(varargin)
         sp{j} = combs(i,j/2);
