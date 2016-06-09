@@ -5,10 +5,13 @@ addRequired(p,'runs');
 addParameter(p,'legendlocation','SouthWest');
 addParameter(p,'legendtitles',[]);
 addParameter(p,'markertime',[]);
+addParameter(p,'skip',1);
 parse(p,runs,varargin{:});
 
 alldata = [runs.data];
 
+figure;
+hold on;
 xmin = 0;
 xmax = runs(1).params.time;
 minpos = min(alldata(2,:));
@@ -31,8 +34,17 @@ for i = nodes
    hold on;
 end
 styles = {'b-','r-','g-','m-','c-','y-'};
+dashstyles = {'b--','r--','g--','m--','c--','y--'};
 markerStyles = {'ks','ko','kd','k^','kv','k<'};
-skip = 4;
+skip = p.Results.skip;
+if (isfield(runs,'std'))
+    for i = 1:length(runs)
+        yh = runs(i).data(2,1:skip:end) + runs(i).std(2,1:skip:end);
+        yl = runs(i).data(2,1:skip:end) - runs(i).std(2,1:skip:end);
+    	plot(runs(i).data(1,1:skip:end),yh,dashstyles{mod(i-1,length(styles))+1},'LineWidth',1);           
+        plot(runs(i).data(1,1:skip:end),yl,dashstyles{mod(i-1,length(styles))+1},'LineWidth',1);           
+    end    
+end
 h = zeros(1,length(runs));
 for i = 1:length(runs)
     h(i) = plot(runs(i).data(1,1:skip:end),runs(i).data(2,1:skip:end),styles{mod(i-1,length(styles))+1},'LineWidth',1.3);           

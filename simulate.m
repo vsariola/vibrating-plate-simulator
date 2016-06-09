@@ -1,19 +1,19 @@
-function [data,params] = simulate(varargin)
+function [run] = simulate(varargin)
 % SIMULATE  Simulates the trajectory of a rigid cylinder bouncing on a 1D
 % standing wave.
 %
-% data = SIMULATE(...) returns a 7 x N data matrix, where:
-%   data(1,:) is the time
-%   data(2,:) is the x-coordinate [m]
-%   data(3,:) is the y-coordinate [m]
-%   data(4,:) is the x-velocity [m/s]
-%   data(5,:) is the y-velocity [m/s]
-%   data(6,:) is the angle [rad]
-%   data(7,:) is the angular velocity [rad/s]
+% run = SIMULATE(...) returns a 7 x N data matrix, where run is a struct:
+%   run.data(1,:) is the time
+%   run.data(2,:) is the x-coordinate [m]
+%   run.data(3,:) is the y-coordinate [m]
+%   run.data(4,:) is the x-velocity [m/s]
+%   run.data(5,:) is the y-velocity [m/s]
+%   run.data(6,:) is the angle [rad]
+%   run.data(7,:) is the angular velocity [rad/s]
+%   run.params is a struct, containing the parameters of the simulation
 %
-% [~,params] = SIMULATE(...) returns all the parameters used in the
-% simulation. To regenerate the same data, use: data =
-% SIMULATE('params',params)
+% To resuse the parameters from previous simulation, use
+% SIMULATE('params',previousrun.params)
 % 
 % SIMULATE('name',value,...) optional parameters:
 %   'method': either 'newton' or 'poisson', default 'poisson'
@@ -232,3 +232,7 @@ for i = 1:n
         disp('The kinetic energy just increased in a bounce!!!');
     end
 end
+
+run = struct;
+run.data = data;
+run.params = params;
