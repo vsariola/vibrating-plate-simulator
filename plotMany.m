@@ -11,6 +11,7 @@ parse(p,runs,varargin{:});
 alldata = [runs.data];
 
 figure;
+axes('Position',[0.09 0.12 0.82 0.82]);
 hold on;
 xmin = 0;
 xmax = runs(1).params.time;
@@ -34,21 +35,22 @@ for i = nodes
    hold on;
 end
 styles = {'b-','r-','g-','m-','c-','y-'};
-dashstyles = {'b--','r--','g--','m--','c--','y--'};
 markerStyles = {'ks','ko','kd','k^','kv','k<'};
 skip = p.Results.skip;
-if (isfield(runs,'std'))
-    for i = 1:length(runs)
-        yh = runs(i).data(2,1:skip:end) + runs(i).std(2,1:skip:end);
-        yl = runs(i).data(2,1:skip:end) - runs(i).std(2,1:skip:end);
-    	plot(runs(i).data(1,1:skip:end),yh,dashstyles{mod(i-1,length(styles))+1},'LineWidth',1);           
-        plot(runs(i).data(1,1:skip:end),yl,dashstyles{mod(i-1,length(styles))+1},'LineWidth',1);           
-    end    
-end
 h = zeros(1,length(runs));
 for i = 1:length(runs)
-    h(i) = plot(runs(i).data(1,1:skip:end),runs(i).data(2,1:skip:end),styles{mod(i-1,length(styles))+1},'LineWidth',1.3);           
+    if (isfield(runs,'std'))        
+        x = runs(i).data(1,1:skip:end);
+        y = runs(i).data(2,1:skip:end);   
+        errBar = runs(i).std(2,1:skip:end);
+        hst = shadedErrorBar(x,y,errBar,styles{mod(i-1,length(styles))+1},1);
+        hst.mainLine.LineWidth = 1.3;
+        h(i) = hst.mainLine;        
+    else        
+        h(i) = plot(runs(i).data(1,1:skip:end),runs(i).data(2,1:skip:end),styles{mod(i-1,length(styles))+1},'LineWidth',1.3);           
+    end    
 end
+
 if (~isempty(p.Results.legendtitles)) 
     [leg,hl] = legend(h,p.Results.legendtitles,'Location',p.Results.legendlocation);    
     if ~isempty(p.Results.markertime)
@@ -80,3 +82,4 @@ set(h,'FontName','Arial','FontSize', fsize)
 h = get(gca, 'ylabel');
 set(h ,'FontName','Arial','FontSize', fsize)
 set(gcf,'color','w'); % white background
+box on;

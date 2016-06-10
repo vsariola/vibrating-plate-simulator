@@ -1,20 +1,21 @@
-clear all
+function plot_frequency(varargin)
+
+p = inputParser;
+addParameter(p,'repetitions',1);
+parse(p,varargin{:});
 
 %%
 tic;
-frequencies = [550 800 1000 1500 3000];
-runs = simulateMany('time',1,'frequency',frequencies,'dt',1/(64*2200));    
+frequencies = [550 800 1000 1500 2200];
+xpos = 7.5e-4+linspace(-10e-6,10e-6,p.Results.repetitions);
+runs = parallelCall(@(f) ...
+            groupruns(parallelCall(@(p) simulate('time',1,'frequency',f,'position',p,'dt',1/(64*2200)) ...
+                ,[xpos;ones(1,length(xpos))*150e-6/2])),frequencies);
 toc;
 %%
-close all
-leg = plotMany(runs,cellstr(num2str(frequencies', '%d Hz')));
-leg.Location = 'NorthEast';
+plotMany(runs,'legendtitles',cellstr(num2str(frequencies', '%d Hz')));
 %%
-[~,~] = mkdir('output');
-save('output/Frequency.mat','runs');
-% Needs ghostscript installed, http://www.ghostscript.com/
-addpath('export_fig');
-export_fig('output/Frequency.pdf')
+saveDataAndImage('Frequency','runs','frequencies');
 
 
 

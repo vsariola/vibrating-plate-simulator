@@ -1,19 +1,22 @@
-clear all
+function plot_restitution(varargin)
+
+p = inputParser;
+addParameter(p,'repetitions',10);
+parse(p,varargin{:});
 
 %%
 tic;
-restitution = [0 0.2 0.4 0.6 0.8 1];
-runs = simulateMany('time',1,'restitution',restitution);    
+restitution = [0 0.2 0.4 0.6 1];
+xpos = 7.5e-4+linspace(-10e-6,10e-6,p.Results.repetitions);
+runs = parallelCall(@(e) ...
+            groupruns(parallelCall(@(p) simulate('time',1,'restitution',e,'position',p) ...
+                ,[xpos;ones(1,length(xpos))*150e-6/2])),restitution);
 toc;
+
 %%
-close all
-plotMany(runs,cellstr(num2str(restitution', '\\it{e} = %.2f')));
+plotMany(runs,'legendtitles',cellstr(num2str(restitution', '\\it{e} = %.1f')));
 %%
-[~,~] = mkdir('output');
-save('output/Restitution.mat','runs');
-% Needs ghostscript installed, http://www.ghostscript.com/
-addpath('export_fig');
-export_fig('output/Restitution.pdf')
+saveDataAndImage('Restitution','runs','restitution');
 
 
 

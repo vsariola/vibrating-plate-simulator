@@ -1,25 +1,22 @@
-clear all
+function plot_size(varargin)
+
+p = inputParser;
+addParameter(p,'repetitions',10);
+parse(p,varargin{:});
 
 %%
 tic;
 diameter = [100e-6 200e-6 350e-6 600e-6 1e-3];
 height = 0.5 .* diameter;
-runs= struct();
-parfor i = 1:length(diameter)
-    [data,params] = simulate('time',1,'diameter',diameter(i),'height',height(i),'position',[7.5e-4;height(i)/2]);
-    runs(i).data = data;
-    runs(i).params = params;
-end
+xpos = 7.5e-4+linspace(-10e-6,10e-6,p.Results.repetitions);
+runs = parallelCall(@(d,h) ...
+            groupruns(parallelCall(@(p) simulate('time',1,'diameter',d,'height',h,'position',p) ...
+                ,[xpos;ones(1,length(xpos))*150e-6/2])),diameter,height);
 toc;
 %%
-close all
-plotMany(runs,cellstr(num2str(diameter' * 1e6, '\\it{d} = %.0f µm')));
+plotMany(runs,'legendtitles',cellstr(num2str(diameter' * 1e6, '\\it{d} = %.0f µm')));
 %%
-[~,~] = mkdir('output');
-save('output/Size.mat','runs');
-% Needs ghostscript installed, http://www.ghostscript.com/
-addpath('export_fig');
-export_fig('output/Size.pdf')
+saveDataAndImage('Size','runs','diameter');
 
 
 

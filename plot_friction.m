@@ -1,19 +1,19 @@
-clear all
+function plot_friction(varargin)
+
+p = inputParser;
+addParameter(p,'repetitions',10);
+parse(p,varargin{:});
 
 %%
 tic;
 friction = [0 0.01 0.2 0.4 0.6 0.8];
-runs = simulateMany('time',2,'friction',friction);    
+xpos = 7.5e-4+linspace(-10e-6,10e-6,p.Results.repetitions);
+runs = parallelCall(@(f) ...
+            groupruns(parallelCall(@(p) simulate('time',2,'friction',f,'position',p) ...
+                ,[xpos;ones(1,length(xpos))*150e-6/2])),friction);
 toc;
+
 %%
-close all
-plotMany(runs,cellstr(num2str(friction', '\\mu = %.3f')));
+plotMany(runs,'legendtitles',cellstr(num2str(friction', '\\it{\\mu} = %.2f')));
 %%
-[~,~] = mkdir('output');
-save('output/Friction.mat','runs');
-% Needs ghostscript installed, http://www.ghostscript.com/
-addpath('export_fig');
-export_fig('output/Friction.pdf')
-
-
-
+saveDataAndImage('Friction','runs','friction');
