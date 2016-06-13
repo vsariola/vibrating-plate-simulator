@@ -14,7 +14,7 @@ runs = parallelCall(@(e) ...
 toc;
 
 %%
-plotMany(runs,'legendtitles',cellstr(num2str(restitution', '\\it{e} = %.1f')));
+plotMany(runs,'legendtitles',cellstr(num2str(restitution', '\\it{e} = %.1f')),'markertime',0.4);
 %%
 saveDataAndImage('Restitution','runs','restitution');
 

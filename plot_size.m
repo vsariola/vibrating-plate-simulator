@@ -14,7 +14,7 @@ runs = parallelCall(@(d,h) ...
                 ,[xpos;ones(1,length(xpos))*150e-6/2])),diameter,height);
 toc;
 %%
-plotMany(runs,'legendtitles',cellstr(num2str(diameter' * 1e6, '\\it{d} = %.0f µm')));
+plotMany(runs,'legendtitles',cellstr(num2str(diameter' * 1e6, '\\it{d} = %.0f µm')),'markertime',0.5);
 %%
 saveDataAndImage('Size','runs','diameter');
 

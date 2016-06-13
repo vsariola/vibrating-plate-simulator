@@ -1,4 +1,4 @@
-reps = 1;
+reps = 100;
 
 plot_aspectratio('repetitions',reps);
 plot_friction('repetitions',reps);
