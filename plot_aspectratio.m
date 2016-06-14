@@ -1,7 +1,7 @@
 function plot_aspectratio(varargin)
 
 p = inputParser;
-addParameter(p,'repetitions',10);
+addParameter(p,'repetitions',2);
 parse(p,varargin{:});
 
 %%
