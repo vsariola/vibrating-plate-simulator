@@ -1,6 +1,6 @@
 close all
 clear all
 
-[data,params] = simulate('amplitude',0,'position',[0,1e-3]);
-figure;
-visualize(data,params,10);
+run = simulate('time',0.2);
+%%
+visualize(run,'video','output/Movie','videospeed',0.01,'fps',24);

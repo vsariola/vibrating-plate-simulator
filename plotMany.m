@@ -1,21 +1,33 @@
-function leg = plotMany(runs,varargin)
+function labelpos = plotMany(runs,varargin)
 
 fname = 'Arial';
-fsize = 8;
+fsize = 12;
 
 alldata = [runs.data];
 
 p = inputParser();
 addRequired(p,'runs');
-addParameter(p,'legendlocation','SouthWest');
-addParameter(p,'legendtitles',[]);
+addParameter(p,'legendlocation',[]);
+addParameter(p,'labels',[]);
 addParameter(p,'markertime',[]);
 addParameter(p,'plotnodes',false);
 addParameter(p,'skip',size(alldata,2) / 2000);
+addParameter(p,'ginput',false);
+addParameter(p,'labelpos',[]);
 parse(p,runs,varargin{:});
 
-figure('units','centimeters','Position',[1 1 5.3 4]);
-axes('Position',[0.09 0.12 0.82 0.82]);
+labelpos = p.Results.labelpos;
+
+fig_width = 5.3*1.5;
+fig_height = 4*1.5;
+figure('units','centimeters','Position',[1 1 fig_width fig_height]);
+lmargin = 0.95;
+rmargin = 0.15;
+tmargin = 0.6;
+bmargin = 1.2;
+ax_width = fig_width - lmargin - rmargin;
+ax_height = fig_height - tmargin - bmargin;
+axes('units','centimeters','Position',[lmargin bmargin ax_width ax_height]);
 hold on;
 xmin = 0;
 xmax = runs(1).params.time;
@@ -59,8 +71,8 @@ for i = 1:length(runs)
     end    
 end
 
-if (~isempty(p.Results.legendtitles)) 
-    [leg,hl] = legend(h,p.Results.legendtitles,'Location',p.Results.legendlocation);    
+if ~isempty(p.Results.legendlocation)
+    [leg,hl] = legend(h,p.Results.labels,'Location',p.Results.legendlocation);    
     if ~isempty(p.Results.markertime)
         for i = 1:length(runs)  
             set(hl(i*2+length(runs)), 'Marker', markerStyles{i}(2),'LineWidth',1.3,'MarkerSize', 7,'Color','k')      % Color only
@@ -90,3 +102,32 @@ h = get(gca, 'ylabel');
 set(h ,'FontName',fname,'FontSize', fsize)
 set(gcf,'color','w'); % white background
 box on;
+
+if p.Results.ginput || ~isempty(labelpos)
+   if isempty(labelpos)
+       labelpos = zeros(length(p.Results.labels),4);
+   end
+   for i = 1:length(p.Results.labels)
+       if p.Results.ginput
+           k = reshape(ginput(2)',1,4);
+           labelpos(i,:) = k;
+       else
+           k = labelpos(i,:);           
+       end
+       d2 = (runs(i).data(1,:) - k(1)) .^ 2 + (runs(i).data(2,:) - k(2)) .^ 2;
+       [~,ind] = min(d2);
+       x = runs(i).data(1,ind);
+       y = runs(i).data(2,ind);
+       hold on;
+       plot([x k(3)],[y k(4)],'k-');
+       hold off;
+       if (k(3) > x)
+           halign = 'left'; 
+           k(3) = k(3) + xmax*0.01;
+       else           
+           halign = 'right';
+           k(3) = k(3) - xmax*0.01;
+       end
+       text(k(3),k(4),p.Results.labels{i},'HorizontalAlign',halign,'VerticalAlign','middle','FontName',fname,'FontSize',fsize);       
+   end
+end

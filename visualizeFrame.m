@@ -1,4 +1,4 @@
-function [bl,tr] = visualizeFrame(run,poly,h,frameNumber,xx)
+function [bl,tr,time] = visualizeFrame(run,poly,h,frameNumber,xx)
     time = run.data(1,frameNumber);
     position = run.data(2:3,frameNumber);
     theta = run.data(6,frameNumber);

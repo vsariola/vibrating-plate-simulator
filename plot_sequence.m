@@ -1,7 +1,8 @@
 close all
 clear all
 
-run = simulate('wavelength',80e-3,'amplitude',40e-6,'restitution',0.8,'time',0.24);
+% run = simulate('wavelength',80e-3,'amplitude',40e-6,'restitution',0.8,'time',0.24);
+run = simulate('time',0.24);
 
 ar = 3.7910;
 skip = 1600;

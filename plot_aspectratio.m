@@ -6,7 +6,7 @@ parse(p,varargin{:});
 
 %%
 tic;
-aspectratio = [1 0.9 0.5 0.2 0.15];
+aspectratio = [1 0.9 0.5 0.2 0.1];
 volume = 300e-6 * pi * 300e-6^2;
 diameter = 2 * (volume ./ (pi * 2 * aspectratio)) .^ (1/3);
 height = aspectratio .* diameter;
@@ -16,7 +16,7 @@ runs = parallelCall(@(d,h) ...
                 ,[xpos;ones(1,length(xpos))*h/2])),diameter,height);
 toc;
 %%
-plotMany(runs,'legendtitles',cellstr(num2str(aspectratio', '%.2f')),'legendlocation','SouthWest','markertime',1);
+labelpos = plotMany(runs,'labels',cellstr(num2str(aspectratio', '{\\ita}=%.2f')),'ginput',true);
 %%
 saveDataAndImage('AspectRatio','runs','aspectratio');
 
