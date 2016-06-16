@@ -1,7 +1,7 @@
-function plot_restitution(varargin)
+function simulate_restitution(varargin)
 
 p = inputParser;
-addParameter(p,'repetitions',10);
+addParameter(p,'repetitions',4);
 parse(p,varargin{:});
 
 %%
@@ -14,9 +14,7 @@ runs = parallelCall(@(e) ...
 toc;
 
 %%
-plotMany(runs,'legendtitles',cellstr(num2str(restitution', '\\it{e} = %.1f')),'markertime',0.4);
-%%
-saveDataAndImage('Restitution','runs','restitution');
+saveData('Restitution','runs','restitution');
 
 
 

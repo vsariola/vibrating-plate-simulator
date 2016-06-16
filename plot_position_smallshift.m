@@ -12,9 +12,7 @@ runs = parallelCall(@(p) simulate('time',1.4,'position',p) ...
                 ,[xpos;ones(1,length(xpos))*150e-6/2]);
 toc;
 %%
-plotMany(runs);
-%%
-saveDataAndImage('Smallshift','runs');
+saveData('Smallshift','runs');
 
 
 

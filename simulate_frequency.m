@@ -1,7 +1,7 @@
-function plot_frequency(varargin)
+function simulate_frequency(varargin)
 
 p = inputParser;
-addParameter(p,'repetitions',10);
+addParameter(p,'repetitions',4);
 parse(p,varargin{:});
 
 %%
@@ -13,9 +13,7 @@ runs = parallelCall(@(f) ...
                 ,[xpos;ones(1,length(xpos))*150e-6/2])),frequencies);
 toc;
 %%
-plotMany(runs,'legendtitles',cellstr(num2str(frequencies', '%d Hz')),'legendlocation','East','markertime',0.2);
-%%
-saveDataAndImage('Frequency','runs','frequencies');
+saveData('Frequency','runs','frequencies');
 
 
 

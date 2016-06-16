@@ -1,12 +1,12 @@
-function plot_aspectratio(varargin)
+function simulate_aspectratio(varargin)
 
 p = inputParser;
-addParameter(p,'repetitions',2);
+addParameter(p,'repetitions',4);
 parse(p,varargin{:});
 
 %%
 tic;
-aspectratio = [1 0.9 0.5 0.2 0.1];
+aspectratio = [1 0.95 0.5 0.2 0.15];
 volume = 300e-6 * pi * 300e-6^2;
 diameter = 2 * (volume ./ (pi * 2 * aspectratio)) .^ (1/3);
 height = aspectratio .* diameter;
@@ -16,7 +16,6 @@ runs = parallelCall(@(d,h) ...
                 ,[xpos;ones(1,length(xpos))*h/2])),diameter,height);
 toc;
 %%
-labelpos = plotMany(runs,'labels',cellstr(num2str(aspectratio', '{\\ita}=%.2f')),'ginput',true);
-%%
-saveDataAndImage('AspectRatio','runs','aspectratio');
+saveData('AspectRatio','runs','aspectratio');
+
 

@@ -4,7 +4,9 @@ fname = 'Arial';
 fsize = 12;
 
 alldata = [runs.data];
-
+if isfield(runs,'std')
+    allstd = [runs.std];
+end
 p = inputParser();
 addRequired(p,'runs');
 addParameter(p,'legendlocation',[]);
@@ -12,16 +14,14 @@ addParameter(p,'labels',[]);
 addParameter(p,'markertime',[]);
 addParameter(p,'plotnodes',false);
 addParameter(p,'skip',size(alldata,2) / 2000);
-addParameter(p,'ginput',false);
-addParameter(p,'labelpos',[]);
+addParameter(p,'ginputlabels',false);
+addParameter(p,'labelfile',[]);
 parse(p,runs,varargin{:});
 
-labelpos = p.Results.labelpos;
-
-fig_width = 5.3*1.5;
-fig_height = 4*1.5;
+fig_width = 8.4*1.5;
+fig_height = 6*1.5;
 figure('units','centimeters','Position',[1 1 fig_width fig_height]);
-lmargin = 0.95;
+lmargin = 1.05;
 rmargin = 0.15;
 tmargin = 0.6;
 bmargin = 1.2;
@@ -31,8 +31,13 @@ axes('units','centimeters','Position',[lmargin bmargin ax_width ax_height]);
 hold on;
 xmin = 0;
 xmax = runs(1).params.time;
-minpos = min(alldata(2,:));
-maxpos = max(alldata(2,:));
+if isfield(runs,'std')
+    minpos = min(alldata(2,:)-allstd(2,:));
+    maxpos = max(alldata(2,:)+allstd(2,:));
+else
+    minpos = min(alldata(2,:));
+    maxpos = max(alldata(2,:));
+end
 diffpos = maxpos - minpos;
 ymin = minpos - 0.03 * diffpos;
 ymax = maxpos + 0.03 * diffpos;
@@ -103,17 +108,25 @@ set(h ,'FontName',fname,'FontSize', fsize)
 set(gcf,'color','w'); % white background
 box on;
 
-if p.Results.ginput || ~isempty(labelpos)
-   if isempty(labelpos)
-       labelpos = zeros(length(p.Results.labels),4);
-   end
-   for i = 1:length(p.Results.labels)
-       if p.Results.ginput
-           k = reshape(ginput(2)',1,4);
-           labelpos(i,:) = k;
-       else
-           k = labelpos(i,:);           
+if ~isempty(p.Results.labelfile)
+    filepath = fullfile('output',[p.Results.labelfile '.mat']);
+end
+
+if p.Results.ginputlabels || ~isempty(p.Results.labelfile)    
+   labelpos = zeros(length(p.Results.labels),4);
+   if ~isempty(p.Results.labelfile) && exist(filepath,'file')
+       d = load(filepath);
+       if isfield(d,'labelpos')
+           labelpos_old = d.labelpos;
        end
+   end   
+   for i = 1:length(p.Results.labels)
+       if p.Results.ginputlabels || ~exist('labelpos_old','var')
+           k = reshape(ginput(2)',1,4);           
+       else
+           k = labelpos_old(i,:);           
+       end
+       labelpos(i,:) = k;
        d2 = (runs(i).data(1,:) - k(1)) .^ 2 + (runs(i).data(2,:) - k(2)) .^ 2;
        [~,ind] = min(d2);
        x = runs(i).data(1,ind);
@@ -130,4 +143,7 @@ if p.Results.ginput || ~isempty(labelpos)
        end
        text(k(3),k(4),p.Results.labels{i},'HorizontalAlign',halign,'VerticalAlign','middle','FontName',fname,'FontSize',fsize);       
    end
+end
+if ~isempty(p.Results.labelfile)    
+    save(filepath,'labelpos'); 
 end

@@ -1,7 +1,7 @@
-function plot_size(varargin)
+function simulate_size(varargin)
 
 p = inputParser;
-addParameter(p,'repetitions',10);
+addParameter(p,'repetitions',4);
 parse(p,varargin{:});
 
 %%
@@ -14,9 +14,7 @@ runs = parallelCall(@(d,h) ...
                 ,[xpos;ones(1,length(xpos))*150e-6/2])),diameter,height);
 toc;
 %%
-plotMany(runs,'legendtitles',cellstr(num2str(diameter' * 1e6, '\\it{d} = %.0f µm')),'markertime',0.5);
-%%
-saveDataAndImage('Size','runs','diameter');
+saveData('Size','runs','diameter');
 
 
 
