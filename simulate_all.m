@@ -12,4 +12,8 @@ simulate_size('repetitions',reps);
 %%
 simulate_amplitude('repetitions',reps);
 %%
+simulate_position
+%%
+simulate_smallshift('repetitions',reps)
+%%
 plot_all;

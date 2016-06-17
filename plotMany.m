@@ -1,4 +1,4 @@
-function labelpos = plotMany(runs,varargin)
+function [fighandle,axhandle] = plotMany(runs,varargin)
 
 fname = 'Arial';
 fsize = 12;
@@ -13,21 +13,44 @@ addParameter(p,'legendlocation',[]);
 addParameter(p,'labels',[]);
 addParameter(p,'markertime',[]);
 addParameter(p,'plotnodes',false);
+addParameter(p,'XTick',[]);
+addParameter(p,'YTick',[]);
+addParameter(p,'figure',[]);
+addParameter(p,'colorshift',0,@isnumeric);
+addParameter(p,'linestyle','-');
+addParameter(p,'edgelinestyle','-');
+addParameter(p,'axes',[]);
 addParameter(p,'skip',size(alldata,2) / 2000);
 addParameter(p,'ginputlabels',false);
 addParameter(p,'labelfile',[]);
 parse(p,runs,varargin{:});
 
-fig_width = 8.4*1.5;
-fig_height = 6*1.5;
-figure('units','centimeters','Position',[1 1 fig_width fig_height]);
-lmargin = 1.05;
-rmargin = 0.15;
-tmargin = 0.6;
-bmargin = 1.2;
-ax_width = fig_width - lmargin - rmargin;
-ax_height = fig_height - tmargin - bmargin;
-axes('units','centimeters','Position',[lmargin bmargin ax_width ax_height]);
+if isempty(p.Results.axes)
+    if isempty(p.Results.figure)                
+        fig_width = 8.4*1.5;
+        fig_height = 6*1.5;
+        fighandle = figure('units','centimeters','Position',[1 1 fig_width fig_height]);    
+    else        
+        fighandle = p.Results.figure;
+        curunits = fighandle.Units;
+        p.Results.figure.Units = 'centimeters';
+        figure(p.Results.figure);
+        pos = get(gcf, 'Position'); %// gives x left, y bottom, width, height
+        fig_width = pos(3);
+        fig_height = pos(4);
+        fighandle.Units = curunits;   
+    end    
+    lmargin = 1.05;
+    rmargin = 0.15;
+    tmargin = 0.6;
+    bmargin = 1.2;
+    ax_width = fig_width - lmargin - rmargin;
+    ax_height = fig_height - tmargin - bmargin;
+    axhandle = axes('units','centimeters','Position',[lmargin bmargin ax_width ax_height]);    
+else
+    axhandle = p.Results.axes;
+    axes(axhandle);
+end
 hold on;
 xmin = 0;
 xmax = runs(1).params.time;
@@ -43,17 +66,22 @@ ymin = minpos - 0.03 * diffpos;
 ymax = maxpos + 0.03 * diffpos;
 if p.Results.plotnodes
     nodes = ceil(2*ymin/runs(1).params.wavelength):floor(2*ymax/runs(1).params.wavelength);
-    for i = nodes
-       yy = i*runs(1).params.wavelength/2;
-       plot([xmin xmax],[yy yy],'k-','LineWidth',1.3); 
-       text(xmax+(xmax-xmin)*0.01,yy,'Node','FontName',fname,'FontSize',fsize);
+    for i = 1:length(nodes)
+       yy = nodes(i)*runs(1).params.wavelength/2;
+       plot([xmin xmax],[yy yy],'k-.','LineWidth',1.3); 
+       if (i-1 > (length(nodes)-1)/2)
+           valign = 'top';
+       else
+           valign = 'bottom';
+       end
+       text(xmax-(xmax-xmin)*0.01,yy,'Node','FontName',fname,'FontSize',fsize,'HorizontalAlign','right','VerticalAlign',valign);
        hold on;
     end
     nodes = ceil(2*ymin/runs(1).params.wavelength-0.5):floor(2*ymax/runs(1).params.wavelength-0.5);
     for i = nodes
        yy = (i+0.5)*runs(1).params.wavelength/2;
        plot([xmin xmax],[yy yy],'k--','LineWidth',1.3); 
-       text(xmax+(xmax-xmin)*0.01,yy,sprintf('Anti-\nnode'));
+       text(xmax-(xmax-xmin)*0.01,yy,sprintf('Anti-\nnode'),'FontName',fname,'FontSize',fsize,'HorizontalAlign','right','VerticalAlign','bottom');
        hold on;
     end
 end
@@ -68,11 +96,13 @@ for i = 1:length(runs)
         y = runs(i).data(2,1:skip:end);   
         errBar = runs(i).std(2,1:skip:end);
         % hst = shadedErrorBar(x,y,errBar,styles{mod(i-1,length(styles))+1},1);
-        hst = shadedErrorBar(x,y,errBar,{'-','color',colors(mod(i-1,size(colors,1))+1,:)},1);
+        hst = shadedErrorBar(x,y,errBar,{'linestyle',p.Results.linestyle,'color',colors(mod(i-1+p.Results.colorshift,size(colors,1))+1,:)},1);
         hst.mainLine.LineWidth = 1.3;
+        hst.edge(1).LineStyle = p.Results.edgelinestyle;
+        hst.edge(2).LineStyle = p.Results.edgelinestyle;
         h(i) = hst.mainLine;        
     else        
-        h(i) = plot(runs(i).data(1,1:skip:end),runs(i).data(2,1:skip:end),styles{mod(i-1,length(styles))+1},'LineWidth',1.3);           
+        h(i) = plot(runs(i).data(1,1:skip:end),runs(i).data(2,1:skip:end),'linestyle',p.Results.linestyle,'LineWidth',1.3,'Color',colors(mod(i-1+p.Results.colorshift,size(colors,1))+1,:));           
     end    
 end
 
@@ -94,7 +124,13 @@ end
 hold off;
 
 xlim([xmin xmax]);
+if ~isempty(p.Results.XTick)
+    set(gca,'XTick',p.Results.XTick);
+end
 ylim([ymin ymax]);
+if ~isempty(p.Results.YTick)
+    set(gca,'YTick',p.Results.YTick);
+end
 
 ylabel('X-position (m)');
 xlabel('Time (s)');
